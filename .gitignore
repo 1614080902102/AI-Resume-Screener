@@ -1,0 +1,16 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+.streamlit/secrets.toml
+uploads/
+*.log
+.idea/
+.vscode/
+data/
+*.db
+*.sqlite
+
+RECORDING_SCRIPT.md
