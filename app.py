@@ -612,8 +612,17 @@ def show_exception(stage: str, e: Exception):
 # Sidebar — Page navigation
 # ================================================================
 with st.sidebar:
-    st.title("🎯 AI 简历初筛")
-    st.caption("多岗位 · 多格式 · LLM 语义匹配 · HR 可配规则")
+    st.title("🎯 AI 简历初筛 Agent")
+    st.caption("多岗位 · 多格式 · LLM 语义匹配 · HR 可配规则 · SQLite 持久化")
+
+    # 主题切换
+    theme_mode = st.radio(
+        "🎨 主题",
+        ["🌞 浅色", "🌙 深色"],
+        index=0,
+        horizontal=True,
+        label_visibility="collapsed",
+    )
 
     page = st.radio(
         "页面",
@@ -621,6 +630,146 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
+# 全局:隐藏 Streamlit 默认顶部工具栏(Deploy/三点菜单/header) + caption 左对齐
+st.markdown(
+    """
+    <style>
+    [data-testid="stToolbar"] { visibility: hidden !important; }
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        height: 0 !important;
+    }
+    .stApp > header { display: none !important; }
+    #MainMenu { visibility: hidden !important; }
+    footer { visibility: hidden !important; }
+    .stDeployButton { display: none !important; }
+
+    /* caption 强制左对齐,去除任何卡片背景 */
+    [data-testid="stCaptionContainer"],
+    [data-testid="stMarkdownContainer"] > p > small,
+    .stCaption {
+        text-align: left !important;
+        background: transparent !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# 深色模式 CSS 覆盖
+if theme_mode == "🌙 深色":
+    st.markdown(
+        """
+        <style>
+        /* 全局深色背景 */
+        .stApp { background-color: #0e1117 !important; }
+        section[data-testid="stSidebar"] { background-color: #1a1d27 !important; }
+        header[data-testid="stHeader"] { background-color: #0e1117 !important; }
+
+        /* 主区域文字颜色 */
+        .stApp, .stApp p, .stApp h1, .stApp h2, .stApp h3, .stApp label,
+        .stApp .stMarkdown, .stApp [data-testid="stText"] {
+            color: #e6e9ef !important;
+        }
+
+        /* 卡片改为深灰背景 */
+        .job-card {
+            background: linear-gradient(135deg, #1e2230 0%, #252a3d 100%) !important;
+            border: 1px solid #2d3349 !important;
+            color: #e6e9ef !important;
+        }
+        .job-card:hover { box-shadow: 0 6px 16px rgba(102,126,234,0.35) !important; }
+        .job-name { color: #ffffff !important; }
+        .job-meta { color: #aab1c1 !important; }
+        .job-meta b { color: #e6e9ef !important; }
+        .job-stats { border-top: 1px dashed #2d3349 !important; }
+        .job-stat-num { color: #8b9eff !important; }
+        .job-stat-label { color: #8b93a7 !important; }
+        .job-id-badge { background: #2d3349 !important; color: #b3bdf5 !important; }
+
+        /* Profile card 深色版 */
+        .profile-card {
+            background: linear-gradient(135deg, #1e2230 0%, #252a3d 100%) !important;
+            border: 1px solid #2d3349 !important;
+            color: #e6e9ef !important;
+        }
+        .profile-header { border-bottom: 1px solid #2d3349 !important; }
+        .profile-name { color: #ffffff !important; }
+        .profile-tagline { color: #aab1c1 !important; }
+        .profile-section-title { color: #8b9eff !important; }
+        .profile-contact { color: #b8bfd1 !important; }
+        .profile-row { border-bottom: 1px dashed #2d3349 !important; color: #d4d8e3 !important; }
+        .profile-row-title { color: #ffffff !important; }
+        .profile-row-sub { color: #aab1c1 !important; }
+        .profile-row-desc { color: #c5cad7 !important; }
+        .skill-tag {
+            background: #2d3349 !important;
+            color: #b3bdf5 !important;
+        }
+        .highlight-box {
+            background: #3d3520 !important;
+            color: #ffe599 !important;
+            border-left-color: #ffc107 !important;
+        }
+        .portfolio-link {
+            background: #1c3a5c !important;
+            color: #7fb6f0 !important;
+        }
+
+        /* Hit/Risk/Question cards 深色版 */
+        .hit-item {
+            background: #1f3a28 !important;
+            border-left-color: #4ade80 !important;
+            color: #d4f4dd !important;
+        }
+        .hit-item * { color: #d4f4dd !important; }
+        .risk-item {
+            background: #3a2e15 !important;
+            border-left-color: #fbbf24 !important;
+            color: #fde68a !important;
+        }
+        .risk-item * { color: #fde68a !important; }
+        .q-item {
+            background: #1c2d4a !important;
+            border-left-color: #60a5fa !important;
+            color: #c7dafd !important;
+        }
+        .q-item * { color: #c7dafd !important; }
+
+        /* 排序行深色 */
+        .rank-row { background: #1e2230 !important; color: #e6e9ef !important; }
+        .rank-row.pass {
+            background: linear-gradient(90deg, #1f3a28 0%, #1e2230 100%) !important;
+        }
+        .rank-row.fail {
+            background: linear-gradient(90deg, #3a1e20 0%, #1e2230 100%) !important;
+        }
+        .rank-num { color: #8b93a7 !important; }
+        .rank-name { color: #ffffff !important; }
+        .rank-score { color: #ffffff !important; }
+        .small { color: #8b93a7 !important; }
+
+        /* Streamlit 内置组件深色适配 */
+        .stMetric { background: #1e2230 !important; padding: 10px; border-radius: 8px; }
+        [data-testid="stMetricValue"] { color: #ffffff !important; }
+        [data-testid="stMetricLabel"] { color: #aab1c1 !important; }
+        [data-testid="stMetricDelta"] { color: #8b9eff !important; }
+
+        /* 表格 */
+        .stDataFrame, table { background: #1e2230 !important; color: #e6e9ef !important; }
+
+        /* Status 容器 */
+        [data-testid="stStatusWidget"] { background: #1a1d27 !important; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# ============ 全局 sidebar 底部:并发数 + 岗位统计(无论主题都显示) ============
+with st.sidebar:
     st.divider()
     st.subheader("⚡ 并发处理")
     concurrency = st.slider(
@@ -1542,9 +1691,4 @@ elif page.startswith("📊"):
 else:
     page_agent_design()
 
-# ---------- Footer ----------
-st.markdown("---")
-st.caption(
-    "🛠 AI 简历初筛 Agent · 多岗位 · 多格式 · LLM 语义匹配 · "
-    "HR 可配阈值与规则 · SQLite 持久化"
-)
+# (底部页脚已移除 — 信息已整合到左侧 Sidebar 标题)

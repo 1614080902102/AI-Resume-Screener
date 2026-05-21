@@ -1,0 +1,25 @@
+services:
+  app:
+    build: .
+    image: ai-resume-screener:latest
+    container_name: ai-resume-screener
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: ai-resume-screener-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://app:8501
+    depends_on:
+      - app
